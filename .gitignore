@@ -1,0 +1,144 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+.jupyter/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# AI/ML Model files
+*.h5
+*.pt
+*.pth
+*.pkl
+*.pickle
+*.pb
+*.ckpt*
+*.safetensors
+*.joblib
+
+# AI/ML Training outputs and logs
+runs/
+logs/
+.wandb/
+mlruns/
+lightning_logs/
+wandb/
+neptune/
+
+# Data directories (adjust as needed)
+data/
+datasets/
+raw_data/
+processed_data/
+*.csv
+*.xlsx
+*.json
+*.parquet
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+config.local.py
+secrets.json
+
+# OS files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE specific
+.vscode/settings.json
+.vscode/extensions.json
+.idea/
+
+# AWS credentials
+.aws/
+aws_credentials
+
+# Docker
+docker-compose.override.yml
+
+# Node modules (if using Node.js tools)
+node_modules/
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# VS Code specific
+.vscode-server/
