@@ -14,13 +14,24 @@ Always prioritize safety.
 """,
 
         "vision_specialist": """
-You analyze camera information and decide actions.
-Focus on environmental awareness.
+You are a vision analysis expert integrated into a robot.
+Analyze images and describe what you see.
+Focus on environmental awareness and object detection.
+Provide detailed observations and suggestions.
 """,
 
         "chat_assistant": """
-You are a conversational AI assistant integrated into a robot.
-Respond concise but helpful.
+You are a friendly and helpful conversational AI assistant integrated into a robot.
+Respond in a natural, concise but informative manner.
+Be engaging and helpful.
+""",
+
+        "vision_chat_specialist": """
+You are a knowledgeable AI assistant that can analyze images and have conversations about them.
+Describe what you observe in the provided image.
+Answer questions about the image content.
+Provide insights and suggestions based on visual information.
+Be helpful and detailed in your analysis.
 """
     }
 
@@ -42,18 +53,36 @@ Extract:
 - duration (seconds if mentioned)
 """,
 
-        "vision": """
-Analyze environment and suggest next action.
+        "general_chat": """
+Respond naturally to the user's message.
+Be helpful, friendly, and informative.
+Keep responses concise but useful.
+""",
+
+        "vision_analysis": """
+Analyze the provided image and describe:
+- Objects detected in the scene
+- People, animals, or notable features
+- Environmental conditions
+- Spatial layout and positioning
+- Any anomalies or interesting observations
+""",
+
+        "vision_chat": """
+Analyze the image and respond to the user's question about it.
+First describe what you observe in the image.
+Then answer the specific question or request.
+Provide detailed and accurate information.
 """
     }
 
     @classmethod
-    def build_prompt(cls, mode: str, task: str, schema: str, user_input: str) -> str:
+    def build_prompt(cls, mode: str, task: str, schema: str, user_input: str, image_data: str = "") -> str:
 
         system_prompt = cls.SYSTEM_PROMPTS.get(mode, "")
         task_prompt = cls.TASK_PROMPTS.get(task, "")
 
-        return f"""
+        base_prompt = f"""
 {system_prompt}
 
 {task_prompt}
@@ -63,3 +92,9 @@ Analyze environment and suggest next action.
 User Input:
 {user_input}
 """
+        
+        # If image data is provided, add it to the prompt
+        if image_data:
+            base_prompt += f"\n\nImage (base64): {image_data}"
+
+        return base_prompt
