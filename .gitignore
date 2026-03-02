@@ -46,6 +46,8 @@ coverage.xml
 .pytest_cache/
 
 captured_images/*
+.venv*
+
 
 # Virtual environments
 venv/
