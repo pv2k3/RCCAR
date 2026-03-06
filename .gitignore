@@ -95,22 +95,24 @@ lightning_logs/
 wandb/
 neptune/
 
-# Data directories (adjust as needed)
+# Data directories
 data/
 datasets/
 raw_data/
 processed_data/
 *.csv
 *.xlsx
-*.json
 *.parquet
+
+# Specific secrets/local config (NOT *.json — too broad)
+secrets.json
+config.local.json
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 config.local.py
-secrets.json
 
 # OS files
 Thumbs.db

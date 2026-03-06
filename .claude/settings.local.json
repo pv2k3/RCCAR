@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f COMPLETE_SETUP.md INDEX.md PROJECT_OVERVIEW.md PROJECT_ROADMAP.md PYTORCH_CUDA_SETUP.md QUICK_REFERENCE.md UNIFIED_SOLUTION.md VENV_SETUP_GUIDE.md diagnostic.py diagnostic_gpu.py)",
+      "Bash(rm -f ai/CHAT_VISION_DOCS.md ai/NEW_FEATURES_SUMMARY.md ai/README_CHAT_VISION.md ai/examples.py ai/main_ai.py)",
+      "Bash(rm -f tests/QUICK_START.md tests/README.md tests/START_HERE.md tests/SUMMARY.md)",
+      "Bash(rm -f claude.md)",
+      "Bash(mkdir -p config core vision audio skills robotics services api utils)",
+      "Bash(touch config/__init__.py core/__init__.py vision/__init__.py audio/__init__.py skills/__init__.py robotics/__init__.py services/__init__.py api/__init__.py utils/__init__.py ai/__init__.py)",
+      "Bash(pip install google-generativeai pydantic-settings rapidfuzz fastapi \"uvicorn[standard]\" websockets)",
+      "Bash(.venv/Scripts/python.exe -c \"import sys; print\\(sys.version\\); print\\(sys.executable\\)\")",
+      "Bash(\"d:/WORK SELF/MAJOR PROJECT/.venv/Scripts/python.exe\" -c \"import mediapipe as mp; print\\(''version:'', mp.__version__\\); print\\(''tasks attrs:'', dir\\(mp.tasks\\)\\); print\\(''tasks.python attrs:'', dir\\(mp.tasks.python\\)\\); print\\(''tasks.python.vision attrs:'', [x for x in dir\\(mp.tasks.python.vision\\) if not x.startswith\\(''_''\\)]\\)\")",
+      "Bash(.venv/Scripts/python.exe -c \"import pygame; import psutil; import pycaw; import comtypes; print\\(''pygame'', pygame.__version__\\); print\\(''psutil'', psutil.__version__\\); print\\(''pycaw OK''\\); print\\(''comtypes OK''\\)\")"
+    ]
+  }
+}

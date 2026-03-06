@@ -38,19 +38,23 @@ Be helpful and detailed in your analysis.
     TASK_PROMPTS = {
 
         "intent": """
-Classify into:
-- chat
-- movement
-- capture_image
-- stop
-- vision_analysis
+Classify the user's message into exactly one of:
+- chat            (general conversation, questions, anything else)
+- movement        (move, go, drive, turn, forward, backward, left, right)
+- capture_image   (take photo, capture, snapshot)
+- stop            (stop, halt, freeze, don't move)
+- vision_analysis (analyze image, describe picture)
+- follow          (follow me, start following, track me, come with me)
+- unfollow        (stop following, stop tracking, cancel follow, stay)
+
+For movement, extract parameters: direction (forward/backward/left/right/turn_left/turn_right), speed (0.0-1.0), duration (seconds).
 """,
 
         "movement": """
 Extract:
-- direction (forward/backward/left/right)
-- speed (slow/medium/fast or numeric)
-- duration (seconds if mentioned)
+- direction (forward/backward/left/right/turn_left/turn_right)
+- speed (slow=0.4 / medium=0.7 / fast=1.0 or numeric 0.0-1.0)
+- duration (seconds if mentioned, default 1.0)
 """,
 
         "general_chat": """
@@ -77,24 +81,24 @@ Provide detailed and accurate information.
     }
 
     @classmethod
-    def build_prompt(cls, mode: str, task: str, schema: str, user_input: str, image_data: str = "") -> str:
-
+    def build_prompt(
+        cls,
+        mode: str,
+        task: str,
+        schema: str,
+        user_input: str,
+        history: str = "",
+    ) -> str:
         system_prompt = cls.SYSTEM_PROMPTS.get(mode, "")
         task_prompt = cls.TASK_PROMPTS.get(task, "")
+        history_block = f"\n{history}\n" if history else ""
 
-        base_prompt = f"""
-{system_prompt}
+        return f"""{system_prompt}
 
 {task_prompt}
 
 {schema}
-
+{history_block}
 User Input:
 {user_input}
 """
-        
-        # If image data is provided, add it to the prompt
-        if image_data:
-            base_prompt += f"\n\nImage (base64): {image_data}"
-
-        return base_prompt
