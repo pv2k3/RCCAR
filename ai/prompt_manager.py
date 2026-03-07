@@ -46,8 +46,11 @@ Classify the user's message into exactly one of:
 - vision_analysis (analyze image, describe picture)
 - follow          (follow me, start following, track me, come with me)
 - unfollow        (stop following, stop tracking, cancel follow, stay)
+- search          (find, look for, search for, locate, where is, go find, hunt for, seek)
+- stop_search     (stop searching, cancel search, abort search, stop looking)
 
 For movement, extract parameters: direction (forward/backward/left/right/turn_left/turn_right), speed (0.0-1.0), duration (seconds).
+For search, extract parameters: target (the object or thing to find, e.g. "book", "chair", "person").
 """,
 
         "movement": """

@@ -38,6 +38,25 @@ class IntentEngine:
                 "halt",
                 "freeze",
                 "wait there"
+            ],
+            "search": [
+                "find",
+                "search for",
+                "look for",
+                "locate",
+                "find me",
+                "where is",
+                "seek",
+                "scan for",
+                "go find",
+                "hunt for"
+            ],
+            "stop_search": [
+                "stop searching",
+                "cancel search",
+                "abort search",
+                "stop looking",
+                "stop the search"
             ]
         }
 
@@ -103,6 +122,23 @@ class IntentEngine:
             "direction": direction,
             "speed": speed
         }
+
+    # ===================================
+    # SEARCH PARAMETER EXTRACTION
+    # ===================================
+
+    def extract_search_parameters(self, text: str) -> Dict:
+        """Strip search verbs and return the remainder as the target object."""
+        cleaned = text.lower()
+        for phrase in [
+            "go find", "hunt for", "search for", "look for", "scan for",
+            "find me a", "find me an", "find me", "find a", "find an",
+            "locate a", "locate an", "locate", "where is", "seek a",
+            "seek an", "seek", "find",
+        ]:
+            cleaned = cleaned.replace(phrase, "").strip()
+        target = cleaned.strip(" ?,.") or "object"
+        return {"target": target}
 
 
 # ===================================

@@ -44,6 +44,8 @@ class EventType(Enum):
     DISTANCE_UPDATE = auto()      # payload: {"front": float, "back": float}  (cm)
     FOLLOW_MODE = auto()          # payload: {"enabled": bool}
     TRACKING_UPDATE = auto()      # payload: {"detected": bool, "offset_x": float, "area_ratio": float, "bbox": dict|None}
+    SEARCH_MODE = auto()          # payload: {"enabled": bool, "target": str}
+    SEARCH_DONE = auto()          # payload: {"found": bool, "target": str}
 
     # ── System ────────────────────────────────────────────────────────────────
     SYSTEM_READY = auto()

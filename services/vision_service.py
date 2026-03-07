@@ -49,8 +49,11 @@ class VisionService:
 
         os.makedirs("captured_images", exist_ok=True)
 
+        self._search_mode = False
+
         self.bus.subscribe(EventType.FRAME_CAPTURED, self._on_capture_request)
         self.bus.subscribe(EventType.FOLLOW_MODE, self._on_follow_mode)
+        self.bus.subscribe(EventType.SEARCH_MODE, self._on_search_mode)
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -97,36 +100,83 @@ class VisionService:
                 time.sleep(0.05)
 
     def _process_loop(self) -> None:
-        """Process frames at ~5 fps and publish detection events."""
-        while self._running:
-            frame = self.get_frame()
-            if frame is None:
-                time.sleep(0.05)
-                continue
+        """Process frames at ~5 fps, publish detection events, and show preview."""
+        try:
+            while self._running:
+                frame = self.get_frame()
+                if frame is None:
+                    time.sleep(0.05)
+                    continue
 
-            try:
-                objects = self.object_detector.detect(frame)
-                faces = self.face_detector.detect(frame)
-                gestures = self.gesture_detector.detect(frame)
+                try:
+                    objects = self.object_detector.detect(frame)
+                    faces = self.face_detector.detect(frame)
+                    gestures = self.gesture_detector.detect(frame)
 
-                if objects:
-                    self._publish(EventType.OBJECTS_DETECTED, {"objects": objects})
-                if faces:
-                    self._publish(EventType.FACE_DETECTED, {"faces": faces})
-                if gestures:
-                    for hand in gestures:
-                        self._publish(EventType.GESTURE_DETECTED, {"gesture": hand["gesture"]})
-
-                # Person tracking — only publish when follow mode is active
-                if self._follow_mode:
                     h, w = frame.shape[:2]
-                    tracking = self.person_tracker.update(objects, w, h)
-                    self._publish(EventType.TRACKING_UPDATE, tracking)
+                    if objects or self._search_mode:
+                        self._publish(EventType.OBJECTS_DETECTED, {
+                            "objects": objects,
+                            "frame_w": w,
+                            "frame_h": h,
+                        })
+                    if faces:
+                        self._publish(EventType.FACE_DETECTED, {"faces": faces})
+                    if gestures:
+                        for hand in gestures:
+                            self._publish(EventType.GESTURE_DETECTED, {"gesture": hand["gesture"]})
 
-            except Exception as exc:
-                logger.error("Vision processing error: %s", exc, exc_info=True)
+                    # Person tracking — only publish when follow mode is active
+                    if self._follow_mode:
+                        h, w = frame.shape[:2]
+                        tracking = self.person_tracker.update(objects, w, h)
+                        self._publish(EventType.TRACKING_UPDATE, tracking)
 
-            time.sleep(0.2)  # ~5 fps
+                    # ── Live annotated preview window ─────────────────────────
+                    preview = frame.copy()
+
+                    # Layer annotations: objects (green) → faces (blue) → gestures (cyan)
+                    if objects:
+                        preview = self.object_detector.annotate(preview, objects)
+                    if faces:
+                        preview = self.face_detector.annotate(preview, faces)
+                    if gestures:
+                        preview = self.gesture_detector.annotate(preview, gestures)
+
+                    # Top banner — dark background + status text
+                    banner_h = 28
+                    cv2.rectangle(preview, (0, 0), (preview.shape[1], banner_h), (15, 15, 25), -1)
+
+                    parts: list[str] = []
+                    if objects:
+                        unique_labels = list(dict.fromkeys(d["label"] for d in objects))[:4]
+                        parts.append(f"Obj: {', '.join(unique_labels)}")
+                    if faces:
+                        parts.append(f"Faces: {len(faces)}")
+                    if gestures:
+                        parts.append(f"Gesture: {', '.join(h['gesture'] for h in gestures)}")
+                    status = "  |  ".join(parts) if parts else "Vision Active"
+
+                    cv2.putText(
+                        preview, status,
+                        (6, 19),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.52,
+                        (0, 230, 180), 1, cv2.LINE_AA,
+                    )
+
+                    cv2.imshow("Aura Vision", preview)
+                    cv2.waitKey(1)
+
+                except Exception as exc:
+                    logger.error("Vision processing error: %s", exc, exc_info=True)
+
+                time.sleep(0.2)  # ~5 fps
+        finally:
+            # Close preview window in the same thread that created it
+            try:
+                cv2.destroyWindow("Aura Vision")
+            except Exception:
+                pass
 
     def _publish(self, event_type: EventType, payload: dict) -> None:
         """Thread-safe publish to the async event bus."""
@@ -142,6 +192,11 @@ class VisionService:
         """Toggle follow/tracking mode."""
         self._follow_mode = event.payload.get("enabled", False)
         logger.info("Follow mode: %s", "ON" if self._follow_mode else "OFF")
+
+    async def _on_search_mode(self, event: Event) -> None:
+        """Track search mode so OBJECTS_DETECTED is published every frame during a search."""
+        self._search_mode = event.payload.get("enabled", False)
+        logger.info("Vision search mode: %s", "ON" if self._search_mode else "OFF")
 
     async def _on_capture_request(self, event: Event) -> None:
         """Save current frame to disk."""

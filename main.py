@@ -29,6 +29,8 @@ from robotics.navigation import Navigator
 from robotics.distance_sensor import DistanceSensor
 from skills.system_commands import VolumeSkill, OpenApplicationSkill, SystemInfoSkill
 from skills.automation import TimerSkill, ListFilesSkill, RunCommandSkill
+from ui.visualizer import BallVisualizer
+from utils.interaction_logger import InteractionLogger
 
 
 def setup_logging() -> None:
@@ -50,6 +52,33 @@ async def main() -> None:
 
     # ── Event bus ─────────────────────────────────────────────────────────────
     bus = EventBus()
+
+    # ── 3-D ball visualizer ───────────────────────────────────────────────────
+    ball = BallVisualizer()
+    ball.start()
+
+    # ── Interaction logger ────────────────────────────────────────────────────
+    ilog = InteractionLogger()
+
+    # Subscribe to speech events to drive ball animation and log I/O
+    async def _on_speech_text_ui(event: Event) -> None:
+        text = event.payload.get("text", "")
+        if text:
+            ilog.log_user_input(text)
+            ball.set_user_speaking()
+
+    async def _on_tts_speak_ui(event: Event) -> None:
+        text = event.payload.get("text", "")
+        if text:
+            ilog.log_ai_output(text)
+            ball.set_ai_speaking()
+
+    async def _on_tts_done_ui(event: Event) -> None:
+        ball.set_idle()
+
+    bus.subscribe(EventType.SPEECH_TEXT, _on_speech_text_ui)
+    bus.subscribe(EventType.TTS_SPEAK,   _on_tts_speak_ui)
+    bus.subscribe(EventType.TTS_DONE,    _on_tts_done_ui)
 
     # ── Skills ────────────────────────────────────────────────────────────────
     all_skills = [
@@ -135,6 +164,7 @@ async def main() -> None:
         logger.info("Shutting down...")
         await bus.publish(Event(EventType.SYSTEM_SHUTDOWN, {}, source="main"))
 
+        ball.stop()
         voice_service.stop()
         vision_service.stop()
         navigator.disconnect()

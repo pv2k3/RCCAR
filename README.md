@@ -16,6 +16,8 @@ An AI-powered robot assistant combining voice control, computer vision, person t
 | **Gesture control** | Open palm → stop car · Thumbs up → acknowledgement |
 | **Person follow** | "Follow me" → car tracks and follows you autonomously |
 | **Stop following** | "Stop following" / "Cancel follow" |
+| **Autonomous search** | "Find a book" → rotates, scans, advances, and approaches the target |
+| **Cancel search** | "Stop searching" / "Cancel search" |
 | **Move the car** | "Move forward" / "Turn left" / "Go back slowly" |
 | **Stop** | "Stop" / "Halt" |
 | **System info** | "What's the CPU usage?" |
@@ -60,7 +62,7 @@ MAJOR PROJECT/
 │
 ├── robotics/                   # RC car control
 │   ├── motor_control.py        # Simulation / Serial / HTTP modes
-│   ├── navigation.py           # High-level movement + follow loop
+│   ├── navigation.py           # High-level movement + follow loop + search state machine
 │   └── distance_sensor.py      # Front/back ultrasonic (dummy or real)
 │
 ├── core/                       # System backbone
@@ -244,6 +246,21 @@ TRACKING_AREA_TOO_FAR=0.04            # Person bbox < 4% of frame → move forwa
 TRACKING_AREA_TOO_CLOSE=0.30          # Person bbox > 30% of frame → move backward
 ```
 
+### Autonomous Search Tuning
+
+These constants are at the top of `robotics/navigation.py`:
+
+```python
+_SEARCH_STEPS_PER_SWEEP   = 8     # steps for one full 360° rotation (lower = faster scan)
+_SEARCH_ROTATE_DURATION   = 0.5   # seconds per rotation burst (tune for your motor)
+_SEARCH_ROTATE_SPEED      = 0.45  # motor speed while scanning
+_SEARCH_MAX_SWEEPS        = 3     # full rotations before giving up
+_SEARCH_FORWARD_DURATION  = 1.0   # seconds to advance between sweeps
+_SEARCH_FORWARD_SPEED     = 0.5
+_SEARCH_APPROACH_AREA     = 0.12  # area_ratio threshold = "close enough" to target
+_SEARCH_APPROACH_DEADZONE = 0.25  # |offset_x| to trigger a steering correction
+```
+
 ### API Server
 
 ```env
@@ -282,6 +299,26 @@ The system always listens — no wake word required. Just speak.
 | "Start following" | Same |
 | "Stop following" | Deactivates follow mode |
 | "Cancel follow" | Same |
+
+### Autonomous Object Search
+
+| Say | Action |
+|---|---|
+| "Find a book" | Starts search — rotates in steps, scans each frame with YOLO, then drives toward the object once spotted |
+| "Search for a chair" | Same — any YOLO-detectable object works |
+| "Locate the remote" | Same |
+| "Go find a person" | Useful for finding someone in another room |
+| "Stop searching" | Cancels the search and stops the car |
+| "Cancel search" | Same |
+
+Search behaviour:
+1. **Scan** — checks the current camera frame for the target object
+2. **Rotate** — turns right in short bursts (8 steps ≈ full 360°)
+3. **Sweep complete** — announces sweep number and moves forward to a new position
+4. **Target found** — steers toward the object, drives forward until it fills ~12% of the frame
+5. **Not found** — gives up after 3 full sweeps and announces failure
+
+The car always respects the obstacle distance threshold during all search movements.
 
 ### Vision
 
@@ -405,6 +442,13 @@ Your Arduino sketch should read JSON lines from Serial and drive motors accordin
 - YOLO must detect label `"person"` — ensure lighting is adequate
 - Lower `TRACKING_AREA_TOO_FAR` if car never moves forward (person not detected as big enough)
 
+### Search not finding objects
+- Only objects in the [YOLOv8 COCO class list](https://docs.ultralytics.com/datasets/detect/coco/) are detectable (e.g. `book`, `chair`, `person`, `bottle`, `remote`)
+- Lower `_SEARCH_ROTATE_DURATION` or increase `_SEARCH_STEPS_PER_SWEEP` for a more thorough scan
+- Increase `_SEARCH_MAX_SWEEPS` to allow the car to cover more ground before giving up
+- Lower `VISION_CONFIDENCE_THRESHOLD` in `.env` if detections are being missed
+- Ensure lighting is adequate — YOLO performance drops significantly in low light
+
 ### Movement commands not working
 - Check `RC_CONTROL_TYPE` in `.env` matches your hardware
 - In `simulation` mode, commands are only logged — this is expected
@@ -436,16 +480,40 @@ Microphone
     │       ├── movement    → MOVEMENT_COMMAND → [Navigator] → [MotorController]
     │       ├── follow      → FOLLOW_MODE → [Navigator] tracking loop
     │       ├── unfollow    → FOLLOW_MODE off
+    │       ├── search      → SEARCH_MODE → [Navigator] search state machine
+    │       ├── stop_search → SEARCH_MODE off
     │       └── skill       → execute → SKILL_DONE → TTS_SPEAK
     │
     ├── [Vision Service] (background thread, 5 fps)
-    │       ├── OBJECTS_DETECTED
+    │       ├── OBJECTS_DETECTED (always published during search, includes frame dims)
     │       ├── FACE_DETECTED
     │       ├── GESTURE_DETECTED → [Controller] → stop / ack
     │       └── TRACKING_UPDATE → [Navigator] follow loop
     │
     └── [Distance Sensor] (10 Hz scheduler)
-            └── DISTANCE_UPDATE → [Navigator] obstacle safety
+            └── DISTANCE_UPDATE → [Navigator] obstacle safety + search safety gate
+
+### Search State Machine (robotics/navigation.py)
+
+```
+SEARCH_MODE{enabled:true, target:"book"}
+    ↓
+[_search_loop]  ── scan frame (OBJECTS_DETECTED cache)
+    │                   │
+    │               target found?
+    │               YES → [_approach_target]
+    │                         ├── steer toward offset_x
+    │                         ├── move forward
+    │                         └── area_ratio ≥ 0.12 → SEARCH_DONE{found:true}
+    │
+    NO → rotate right 0.5s
+    │
+    every 8 steps (≈360°)
+    │    ├── announce sweep N/3
+    │    └── move forward 1s (obstacle check first)
+    │
+    after 3 sweeps → SEARCH_DONE{found:false}
+```
 ```
 
 ---

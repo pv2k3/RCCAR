@@ -111,6 +111,31 @@ class Controller:
                 source="controller",
             ))
 
+        elif intent == "search":
+            target = parameters.get("target", "").strip()
+            if not target:
+                # Fallback: extract target from raw text if LLM didn't parse it
+                raw = event.payload.get("raw_text", "")
+                from utils.intent_engine import IntentEngine
+                target = IntentEngine().extract_search_parameters(raw).get("target", "object")
+            await self.bus.publish(Event(
+                EventType.SEARCH_MODE,
+                {"enabled": True, "target": target},
+                source="controller",
+            ))
+
+        elif intent == "stop_search":
+            await self.bus.publish(Event(
+                EventType.SEARCH_MODE,
+                {"enabled": False, "target": ""},
+                source="controller",
+            ))
+            await self.bus.publish(Event(
+                EventType.TTS_SPEAK,
+                {"text": "Search cancelled."},
+                source="controller",
+            ))
+
         # 3. Skill dispatch
         elif intent in self._skill_map:
             await self._run_skill(intent, parameters)
